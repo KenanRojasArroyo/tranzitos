@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Pega estas reglas en Firebase Console → Firestore Database → Reglas → Publicar.
+// Cualquiera puede LEER y AGREGAR personas/frases (con límites de tamaño),
+// pero nadie puede editar ni borrar desde la página. Para borrar, usa la consola de Firebase.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /people/{personId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /phrases/{phraseId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['personId', 'text', 'createdAt'])
+        && request.resource.data.personId is string
+        && exists(/databases/$(database)/documents/people/$(request.resource.data.personId))
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 300
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}
